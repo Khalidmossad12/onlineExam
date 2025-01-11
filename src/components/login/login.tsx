@@ -6,17 +6,20 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export default function LoginForm() {
-  const [userName, setUserName] = useState("");
-  const [password, setPassword] = useState("");
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCredentials((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    signIn("credentials",{
-      email : userName,
-      password : password,
-      callbackUrl : '/'
-    })
-    
+    await signIn("credentials", {
+      email: credentials.email,
+      password: credentials.password,
+      callbackUrl: "/dashbord/subjects",
+    });
   };
 
   return (
@@ -28,56 +31,73 @@ export default function LoginForm() {
       >
         <p className="font-semibold text-lg">Sign in</p>
 
+        {/* Email Input */}
         <input
           type="text"
+          name="email"
           className="w-full shadow-lg border-2 p-2 rounded-lg"
-          placeholder="Username"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
+          placeholder="Email"
+          value={credentials.email}
+          onChange={handleChange}
           autoComplete="off"
         />
+
+        {/* Password Input */}
         <input
           type="password"
+          name="password"
           className="w-full shadow-lg border-2 p-2 rounded-lg"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={credentials.password}
+          onChange={handleChange}
           autoComplete="off"
         />
-      
-        <Link href={'/forgetPassword'} className="text-xs text-[#122D9C] text-end">Recover Password?</Link>
+
+        {/* Forgot Password */}
+        <Link
+          href="/forgetPassword"
+          className="text-xs text-[#122D9C] text-end"
+        >
+          Recover Password?
+        </Link>
+
+        {/* Submit Button */}
         <button
           type="submit"
-          className={`bg-[#4461F2] text-white font-light text-sm w-full p-3 rounded-2xl`}
-          
+          className="bg-[#4461F2] text-white font-light text-sm w-full p-3 rounded-2xl"
         >
           Sign in
         </button>
       </form>
+
+      {/* Divider */}
       <div className="flex gap-3 items-center">
         <div className="divider h-[1px] bg-[#E7E7E7] w-12"></div>
         <p>or Continue with</p>
         <div className="divider h-[1px] bg-[#E7E7E7] w-12"></div>
       </div>
+
+      {/* Social Logins */}
       <div className="social-login flex gap-4">
-        <div onClick={() => signIn("facebook", { callbackUrl: "/home" })} className="login-item flex justify-center hover:shadow-lg items-center border p-2 shadow-md rounded-lg cursor-pointer">
-          <Image width={20} height={20} alt="google" src={"/Vector.png"} />
-        </div>
-        <div
-          onClick={() => signIn("google", { callbackUrl: "/home" })}
-          className="login-item flex justify-center hover:shadow-lg items-center border p-2 shadow-md rounded-lg cursor-pointer"
-        >
-          <Image width={20} height={20} alt="google" src={"/Logo Google.png"} />
-        </div>
-        <div onClick={() => signIn("twitter", { callbackUrl: "/home" })} className="login-item flex justify-center hover:shadow-lg items-center border p-2 shadow-md rounded-lg cursor-pointer">
-          <Image width={20} height={20} alt="google" src={"/Logo.png"} />
-        </div>
-        <div
-          onClick={() => signIn("github", { callbackUrl: "/home" })}
-          className="login-item flex justify-center hover:shadow-lg items-center border p-2 shadow-md rounded-lg cursor-pointer"
-        >
-          <Image width={20} height={20} alt="google" src={"/github.png"} />
-        </div>
+        {[
+          { provider: "facebook", image: "/Vector.png", alt: "Facebook" },
+          { provider: "google", image: "/Logo Google.png", alt: "Google" },
+          { provider: "twitter", image: "/Logo.png", alt: "Twitter" },
+          { provider: "github", image: "/github.png", alt: "GitHub" },
+        ].map((social) => (
+          <div
+            key={social.provider}
+            onClick={() => signIn(social.provider, { callbackUrl: "/home" })}
+            className="login-item flex justify-center hover:shadow-lg items-center border p-2 shadow-md rounded-lg cursor-pointer"
+          >
+            <Image
+              width={20}
+              height={20}
+              alt={social.alt}
+              src={social.image}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

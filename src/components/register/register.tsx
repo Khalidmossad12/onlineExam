@@ -8,14 +8,14 @@ export default function RegisterForm() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    username: "", // Changed from userName to username
+    username: "",
     email: "",
     password: "",
     rePassword: "",
-    phone: "", // Added phone field
+    phone: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,14 +23,36 @@ export default function RegisterForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const validateForm = () => {
+    const { firstName, lastName, username, email, password, rePassword } = formData;
+
+    if (!firstName || !lastName || !username || !email || !password || !rePassword) {
+      return "All fields are required.";
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      return "Please enter a valid email address.";
+    }
+
+    if (password.length < 6) {
+      return "Password must be at least 6 characters long.";
+    }
+
+    if (password !== rePassword) {
+      return "Passwords do not match.";
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setError(null);
+    setSuccess(null);
 
-    // Client-side validation
-    if (formData.password !== formData.rePassword) {
-      setError("Passwords do not match");
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -44,19 +66,32 @@ export default function RegisterForm() {
       });
 
       const data = await res.json();
+      console.log("data" ,data)
 
       if (!res.ok) {
-        setError(data.message || "Failed to sign up");
+        setError(data.message || "Failed to sign up. Please try again.");
         return;
       }
 
       setSuccess("Sign-up successful! Redirecting...");
+      setFormData({
+        firstName: "",
+        lastName: "",
+        username: "",
+        email: "",
+        password: "",
+        rePassword: "",
+        phone: "",
+      });
+      console.log("res" ,res)
+      console.log("data" ,data)
+
       setTimeout(() => {
-        router.push("/login"); // Redirect to login page
+        router.push("/login");
       }, 2000);
     } catch (err) {
       console.error(err);
-      setError("Something went wrong. Please try again.");
+      setError("An unexpected error occurred. Please try again later.");
     }
   };
 
@@ -66,6 +101,7 @@ export default function RegisterForm() {
         onSubmit={handleSubmit}
         className="w-[35%] flex flex-col gap-6"
         autoComplete="off"
+        aria-label="Registration Form"
       >
         <p className="font-semibold text-lg">Sign Up</p>
 
@@ -76,6 +112,8 @@ export default function RegisterForm() {
           placeholder="First Name"
           value={formData.firstName}
           onChange={handleChange}
+          aria-label="First Name"
+          required
         />
 
         <input
@@ -85,6 +123,8 @@ export default function RegisterForm() {
           placeholder="Last Name"
           value={formData.lastName}
           onChange={handleChange}
+          aria-label="Last Name"
+          required
         />
 
         <input
@@ -94,6 +134,8 @@ export default function RegisterForm() {
           placeholder="Username"
           value={formData.username}
           onChange={handleChange}
+          aria-label="Username"
+          required
         />
 
         <input
@@ -103,6 +145,8 @@ export default function RegisterForm() {
           placeholder="Email"
           value={formData.email}
           onChange={handleChange}
+          aria-label="Email"
+          required
         />
 
         <input
@@ -112,6 +156,8 @@ export default function RegisterForm() {
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
+          aria-label="Password"
+          required
         />
 
         <input
@@ -121,6 +167,8 @@ export default function RegisterForm() {
           placeholder="Confirm Password"
           value={formData.rePassword}
           onChange={handleChange}
+          aria-label="Confirm Password"
+          required
         />
 
         <input
@@ -130,6 +178,7 @@ export default function RegisterForm() {
           placeholder="Phone Number"
           value={formData.phone}
           onChange={handleChange}
+          aria-label="Phone Number"
         />
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
@@ -145,6 +194,7 @@ export default function RegisterForm() {
         <button
           type="submit"
           className="bg-[#4461F2] text-white font-light text-sm w-full p-3 rounded-2xl"
+          aria-label="Create Account"
         >
           Create Account
         </button>
