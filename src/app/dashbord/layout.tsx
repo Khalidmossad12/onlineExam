@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react"
 import Image from "next/image"
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faClock,
@@ -40,20 +41,20 @@ export default function Home({children}: {children: React.ReactNode}) {
 
           {/* Navigation Links */}
           <nav className="space-y-4">
-            <a
-              href="#dashboard"
+          <Link
+              href="/dashbord/subjects"
               className="flex items-center space-x-2 text-gray-600 hover:text-white hover:bg-blue-500 px-4 py-2 rounded-lg group"
               aria-label="Dashboard"
             >
-              <FontAwesomeIcon
-                icon={faHome}
-                className="text-blue-500 text-xl transition-colors duration-200 group-hover:text-white"
-              />
-              <span className="font-medium">Dashboard</span>
-            </a>
+            <FontAwesomeIcon
+              icon={faHome}
+              className="text-blue-500 text-xl transition-colors duration-200 group-hover:text-white"
+            />
+            <span className="font-medium">Dashboard</span>
+          </Link>
 
-            <a
-              href="#quiz-history"
+            <Link
+              href="/dashbord/quizes"
               className="flex items-center space-x-2 text-gray-600 hover:text-white hover:bg-blue-500 px-4 py-2 rounded-lg group"
               aria-label="Quiz History"
             >
@@ -62,7 +63,7 @@ export default function Home({children}: {children: React.ReactNode}) {
                 className="text-blue-500 text-xl transition-colors duration-200 group-hover:text-white"
               />
               <span className="font-medium">Quiz History</span>
-            </a>
+            </Link>
 
             <a
               href="#logout"

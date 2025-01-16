@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 
 interface Quiz {
   _id: string;
@@ -44,13 +44,17 @@ export default function QuizDetails() {
 
 
   const fetchQuizDetails = async () => {
-    if (!session?.token) {
-      setError("No token found in session");
-      setLoading(false);
-      return;
-    }
-
     try {
+      // Dynamically retrieve the session to get the token
+      const session = await getSession();
+  
+      if (!session || !session.token) {
+        setError("No token found in session");
+        setLoading(false);
+        return;
+      }
+  
+      // Fetch quiz details using the token
       const response = await fetch(
         `https://exam.elevateegy.com/api/v1/exams?subject=${id}`,
         {
@@ -61,10 +65,11 @@ export default function QuizDetails() {
           },
         }
       );
+  
       if (!response.ok) {
         throw new Error("Failed to fetch quiz details");
       }
-
+  
       const data = await response.json();
       setQuizzes(data.exams || []);
     } catch (err: any) {
@@ -76,22 +81,30 @@ export default function QuizDetails() {
 
   const fetchQuestions = async (quizId: string) => {
     try {
+      // Retrieve the session using getSession
+      const session = await getSession();
+      console.log("session" , session);
+      
+      if (!session || !session.token) {
+        throw new Error("No token found in session");
+      }
+  
       const response = await fetch(
         `https://exam.elevateegy.com/api/v1/questions?exam=${quizId}`,
         {
           method: "GET",
           headers: {
-            token: session?.token || "",
+            token: session.token,
             "Content-Type": "application/json",
           },
         }
       );
-      console.log("response",response)
+  
       if (!response.ok) {
         throw new Error("Failed to fetch questions");
       }
+  
       const data = await response.json();
-      console.log("data" , data)
       setQuestions(data.questions || []);
       setCorrectAnswers(data.questions.map((q: Question) => q.correct || ""));
       setTimer((data.questions[0]?.exam?.duration || 0) * 60);
@@ -100,9 +113,11 @@ export default function QuizDetails() {
       setError(err.message || "An unexpected error occurred while fetching questions");
     }
   };
+  
   useEffect(() => {
     if (id) fetchQuizDetails();
-  }, [id, session]);
+  }, [id]);
+  
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -358,89 +373,357 @@ console.log("answers",userAnswers)
       )}
 
       {/* Add this for the result popup */}
-      {showResultPopup && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 w-full flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-11/12 flex flex-col space-y-6">
-            
-            {/* Section 1 */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold"> </h2>
-              <div className="space-y-1">
-                {[
-                  { answer: "voluptates eos aut", isChecked: true, isCorrect: true },
-                  { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
-                  { answer: "voluptates eos aut", isChecked: false, isCorrect: false }
-                ].map((item, index) => (
-                  <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
-                    <input 
-                      type="checkbox" 
-                      checked={item.isChecked} 
-                      readOnly
-                      className={`w-5 h-5 border-gray-300 rounded focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
-                    />
-                    <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
-                  </div>
-                ))}
+{showResultPopup && (
+  <div className="fixed inset-0 bg-gray-900 bg-opacity-50 w-full flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-11/12 flex flex-col space-y-6 max-h-[90vh] overflow-y-auto">
+      
+      {/* Flex container for sections with wrapping */}
+      <div className="flex flex-row flex-wrap gap-6">
+        
+        {/* Section 1 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Section 1</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: true },
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="checkbox" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 rounded focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
               </div>
-            </section>
-
-            {/* Section 2 */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
-              <div className="space-y-1">
-                {[
-                  { answer: "voluptates eos aut", isChecked: false, isCorrect: true },
-                  { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
-                  { answer: "voluptates eos aut", isChecked: false, isCorrect: false }
-                ].map((item, index) => (
-                  <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
-                    <input 
-                      type="checkbox" 
-                      checked={item.isChecked} 
-                      readOnly
-                      className={`w-5 h-5 border-gray-300 rounded focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
-                    />
-                    <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Section 3 */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
-              <div className="space-y-1">
-                {[
-                  { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
-                  { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
-                  { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
-                ].map((item, index) => (
-                  <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
-                    <input 
-                      type="radio" 
-                      name="option" 
-                      checked={item.isChecked} 
-                      readOnly
-                      className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
-                    />
-                    <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Close Button */}
-            <div className="text-right">
-              <button 
-                onClick={() => setShowResultPopup(false)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Close
-              </button>
-            </div>
+            ))}
           </div>
-        </div>
-      )}
+        </section>
+
+        {/* Section 2 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true },
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="checkbox" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 rounded focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Add more sections as needed */}
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section> {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section> {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+         {/* Section 3 */}
+        <section className="flex-1 min-w-[45%] space-y-3">
+          <h2 className="text-lg font-semibold">Exercitationem pariatur quae facere</h2>
+          <div className="space-y-1">
+            {[
+              { answer: "voluptates eos aut", isChecked: true, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: false },
+              { answer: "voluptates eos aut", isChecked: false, isCorrect: true }
+            ].map((item, index) => (
+              <div key={index} className={`flex items-center space-x-3 p-3 border rounded-lg ${item.isCorrect ? "bg-green-50 border-green-300" : item.isChecked ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-300"}`}>
+                <input 
+                  type="radio" 
+                  name="option" 
+                  checked={item.isChecked} 
+                  readOnly
+                  className={`w-5 h-5 border-gray-300 focus:ring ${item.isCorrect ? "focus:ring-green-500" : "focus:ring-red-500"}`} 
+                />
+                <span className={`${item.isCorrect ? "text-green-700" : item.isChecked ? "text-red-700" : "text-gray-700"}`}>{item.answer}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* Close Button */}
+      <div className="sticky bottom-0 bg-white pt-4 text-right">
+        <button 
+          onClick={() => setShowResultPopup(false)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   );
