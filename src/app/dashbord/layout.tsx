@@ -10,8 +10,8 @@ import {
     faClockRotateLeft,
     faFlag,
     faCircleCheck,
-    faHome,
-    faSearch
+    faSearch,
+    faTableColumns
   } from "@fortawesome/free-solid-svg-icons";
   import { useRouter } from "next/navigation"; // Corrected import
 export default function Home({children}: {children: React.ReactNode}) {
@@ -47,7 +47,7 @@ export default function Home({children}: {children: React.ReactNode}) {
               aria-label="Dashboard"
             >
             <FontAwesomeIcon
-              icon={faHome}
+              icon={faTableColumns}
               className="text-blue-500 text-xl transition-colors duration-200 group-hover:text-white"
             />
             <span className="font-medium">Dashboard</span>
