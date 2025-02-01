@@ -51,11 +51,15 @@ export default function Subject() {
         } else {
           setError("Unexpected API response format");
         }
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "An unexpected error occurred");
+      } catch (err: unknown) {
+        // Handle errors safely
+        if (err instanceof Error) {
+          setError(err.message || "An unexpected error occurred while fetching quiz details");
+        } else {
+          setError("An unexpected error occurred while fetching quiz details");
+        }
       } finally {
-        setLoading(false);
+        setLoading(false); // Ensure loading state is always reset
       }
     };
 

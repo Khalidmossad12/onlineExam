@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { getSession, useSession } from "next-auth/react";
+import { getSession } from "next-auth/react";
 
 interface Quiz {
   _id: string;
@@ -19,7 +19,7 @@ interface Question {
 }
 
 export default function QuizDetails() {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,13 +44,18 @@ export default function QuizDetails() {
 
   const fetchQuizDetails = async () => {
     try {
+      setLoading(true); // Ensure loading starts before fetching
+      setError(null); // Clear any previous errors
+  
       const session = await getSession();
-      if (!session || !session.token) {
-        setError("No token found in session");
+  
+      // Validate session and token
+      if (!session || typeof session.token !== "string") {
+        setError("No valid token found in session");
         setLoading(false);
         return;
       }
-
+  
       const response = await fetch(
         `https://exam.elevateegy.com/api/v1/exams?subject=${id}`,
         {
@@ -61,27 +66,42 @@ export default function QuizDetails() {
           },
         }
       );
-
+  
       if (!response.ok) {
         throw new Error("Failed to fetch quiz details");
       }
-
+  
       const data = await response.json();
-      setQuizzes(data.exams || []);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+  
+      // Validate the API response structure
+      if (!data || !Array.isArray(data.exams)) {
+        throw new Error("Unexpected API response format");
+      }
+  
+      // Update quizzes state with data or an empty array if none
+      setQuizzes(data.exams);
+    } catch (err: unknown) {
+      // Handle errors safely
+      if (err instanceof Error) {
+        setError(err.message || "An unexpected error occurred while fetching quiz details");
+      } else {
+        setError("An unexpected error occurred while fetching quiz details");
+      }
     } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading state is always reset
     }
   };
+  
 
   const fetchQuestions = async (quizId: string) => {
     try {
       const session = await getSession();
-      if (!session || !session.token) {
-        throw new Error("No token found in session");
+  
+      // Ensure session and session.token are valid
+      if (!session || typeof session.token !== "string") {
+        throw new Error("No valid token found in session");
       }
-
+  
       const response = await fetch(
         `https://exam.elevateegy.com/api/v1/questions?exam=${quizId}`,
         {
@@ -92,37 +112,72 @@ export default function QuizDetails() {
           },
         }
       );
-
+  
       if (!response.ok) {
         throw new Error("Failed to fetch questions");
       }
-
+  
       const data = await response.json();
+  
+      // Safely set states based on the API response
       setQuestions(data.questions || []);
-      setCorrectAnswers(data.questions.map((q: Question) => q.correct || ""));
-      setTimer((data.questions[0]?.exam?.duration || 0) * 60);
+      setCorrectAnswers(
+        (data.questions || []).map((q: Question) => q.correct || "")
+      );
+      setTimer((data.questions?.[0]?.exam?.duration || 0) * 60);
       setTimerActive(true);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred while fetching questions");
+    } catch (err: unknown) {
+      // Handle errors safely
+      if (err instanceof Error) {
+        setError(err.message || "An unexpected error occurred while fetching quiz details");
+      } else {
+        setError("An unexpected error occurred while fetching quiz details");
+      }
     }
   };
+  
 
   useEffect(() => {
     if (id) fetchQuizDetails();
   }, [id]);
 
+  const handleFinishQuiz = () => {
+    let correct = 0;
+    let incorrect = 0;
+  
+    userAnswers.forEach((answer, index) => {
+      if (answer === correctAnswers[index]) {
+        correct++;
+      } else {
+        incorrect++;
+      }
+    });
+  
+    setCorrectCount(correct);
+    setIncorrectCount(incorrect);
+    setScore((correct / questions.length) * 100);
+    setShowResults(true);
+    setTimerActive(false);
+    setHasExamStarted(false);
+  };
+  
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-
+  
     if (timerActive && timer > 0) {
       interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
     } else if (timer === 0) {
       handleFinishQuiz();
       setTimerActive(false);
     }
-
-    return () => interval && clearInterval(interval);
-  }, [timerActive, timer]);
+  
+    // Cleanup function
+    return () => {
+      if (interval) {
+        clearInterval(interval); // Clear the interval when the component unmounts or dependencies change
+      }
+    };
+  }, [timerActive, timer, handleFinishQuiz]); // Add dependencies here
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -137,26 +192,6 @@ export default function QuizDetails() {
     setUserAnswers([]);
     setShowInstructions(false);
     setHasExamStarted(true);
-  };
-
-  const handleFinishQuiz = () => {
-    let correct = 0;
-    let incorrect = 0;
-
-    userAnswers.forEach((answer, index) => {
-      if (answer === correctAnswers[index]) {
-        correct++;
-      } else {
-        incorrect++;
-      }
-    });
-
-    setCorrectCount(correct);
-    setIncorrectCount(incorrect);
-    setScore((correct / questions.length) * 100);
-    setShowResults(true);
-    setTimerActive(false);
-    setHasExamStarted(false);
   };
 
   const handleAnswerSelect = (answerKey: string) => {
@@ -221,7 +256,7 @@ export default function QuizDetails() {
               <li>Read all questions carefully.</li>
               <li>You cannot go back to previous questions.</li>
               <li>Make sure to answer all questions.</li>
-              <li>Click "Start Exam" to begin.</li>
+              <li>Click Start Exam to begin.</li>
             </ul>
             <div className="mt-6 text-center">
               <button

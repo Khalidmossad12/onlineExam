@@ -32,7 +32,7 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "text", placeholder: "Please enter your email" },
         password: { label: "Password", type: "password", placeholder: "Please enter your password" },
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         try {
           const res = await fetch("https://exam.elevateegy.com/api/v1/auth/signin", {
             method: "POST",
@@ -66,8 +66,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Persist the token in the session
-      if (token?.token) {
+      if (typeof token.token === "string") { // Ensure `token.token` is a string
         session.token = token.token;
       }
       return session;
