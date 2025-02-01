@@ -19,5 +19,9 @@ export default function middleware(request: NextRequest) {
 
 // Protect specific routes
 export const config = {
-  matcher: ["/home", "/dashboard"], // Add more routes if needed
+  matcher: [
+    "/", // Root path
+    "/dashbord/quizes/:path*", // Dynamic route for /dashboard/quizes/...
+    "/dashbord/subjects", // Specific route for /dashboard/subjects
+  ], // Add more routes if needed
 };
